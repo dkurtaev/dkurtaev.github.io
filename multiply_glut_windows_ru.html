@@ -15,8 +15,8 @@
 рисования.<br>
 <b>Пример:</b> с использованием C++, freeglut.<br>
 </p>
-<p>
 
+<p>
 <h2>Создание простого окна</h2>
 GLUT - библиотека, предоставляющая функционал для создания окон, в которых
 происходит отображение того, что мы нарисовали с помощью OpenGL. Кроме создания,
@@ -83,7 +83,6 @@ GLUT - библиотека, предоставляющая функционал
 собственной функцией отрисовки.
 </p>
 
-<!-- Add second id and switch between. Tell about single reshape. What if number of view more than two? Additional ids?<br> -->
 <table>
   <td width="50%" valign="bottom">
   <pre>
@@ -138,12 +137,14 @@ GLUT - библиотека, предоставляющая функционал
 
 <img src="images/two_windows_classic.png" alt="Two views"><br>
 
-<h2>Single window as class object</h2>
+<h2>Функционал окна внутри класса</h2>
 <p>
-Generally, problem is solved. But in future we may want to have more than two
-windows and with more harder display logic. Let's try encapsulate window
-managment inside class for more scalability.<br>
-Make step backward to single window problem and implement class with same usage.
+Задача, в том виде как она сформулирована, может считаться решённой. Но что,
+если нам потребуется иметь большее число окон, с более сложной логикой отрисовки
+и обработкой событий? Давайте попробуем инкапсулировать работу с окном для
+будущей масштабируемости приложений, использующих GLUT.<br>
+Вернёмся на этап создания одного окна и реализуем класс, обеспечивающий тот же
+функционал.
 </p>
 <pre>
 class GLView {
@@ -152,16 +153,13 @@ class GLView {
 
  private:
    static void display();
-   static void reshape(int width, int height);
 };
 </pre>
 
 <p>
-Header of our class has all that we need. User choose window title only.
-Now main function use single line for create similar window. In sight of class
-user it is straight-forward usage without care about internal implementation.
+С точки зрения пользователя класса, достаточно выбрать заголовок создаваемого
+окна, не заботясь о внутренней реализации.
 </p>
-
 <pre>
 int main(int argc, char** argv) {
   GLView glview("Single view");
@@ -170,9 +168,12 @@ int main(int argc, char** argv) {
 }
 </pre>
 
-In sight of class we just encpsulated existing usage inside corresponding
-methods. Note that functions is static. It is required for registering
-callbacks.
+<p>
+Относительно класса, мы просто оборачиваем существующие функции в
+соответствующие методы. Для регистрации методов как обработчиков событий,
+необходима статическая реализация.
+</p>
+
 <table>
   <td width="50%" valign="bottom">
   <pre>
@@ -184,11 +185,9 @@ callbacks.
     // Window initialization.
     glutInitWindowSize(324, 324);  // Width, height of window.
     glutInitWindowPosition(0, 0);  // (x, y) position of window from top-left.
-    int window_id = glutCreateWindow(title);
+    glutCreateWindow(title);
 
-    // Set callbacks.
-    glutDisplayFunc(display);
-    glutReshapeFunc(reshape);
+    glutDisplayFunc(display);  // Set callback.
   }
   </pre></td>
 
@@ -205,10 +204,6 @@ callbacks.
     glEnd();
 
     glutSwapBuffers();
-  }
-
-  void GLView::reshape(int width, int height) {
-    glViewport(0, 0, width, height);
   }
   </pre></td>
 </table>
