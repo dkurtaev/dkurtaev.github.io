@@ -17,7 +17,7 @@
 <h2>Single classic window</h2>
 GLUT is a library for OpenGL.
 It provides windows manipulations: create, reshape, receive user's callbacks and
-display OpenGL's buffers.<br>
+display OpenGL's drawings stored in buffers.<br>
 Minimal usage includes GLUT and window initialization, settings up references to
 functions which we want to be called by specific events.
 There are callbacks.<br>
@@ -88,10 +88,6 @@ glutCreateWindow(), нигде более не используется.
 ружьё выстрелит.".
 Приглашаю во второй акт, переменная window_id - и есть наше ружьё, которым мы
 воспользуемся при решении поставленной задачи. -->
-<!-- <p>
-Let's think about a couple of windows managing. I write that code above is
-minimal for running our application but it is not completely true. See
-</p> -->
 
 <!-- Проинициализируем последовательно два окна, каждое свяжем с собственной
 функцией отрисовки. -->
@@ -179,14 +175,14 @@ Second View нет. Находясь в едином контексте, нео�
 
 <img src="images/two_windows_classic.png" alt="Two views"><br>
 
-<!-- Задачу можно считать решенной. Однако предложенный подход иммет ряд нестотатков. Во первых,
-присутствуют повторяющиеся участки кода, что ухудшает читаемость. Во вторых, при
-необходимости добавление большего числа окон, потребуется снова вводить дополнительный
-id, . Функционал каждого из окон может расти. Применим ООП для выделения сущности GLView,
-пользователю которого интересует лишь title.  -->
-<!-- Обернём весь имеющийся функционал в класс GLView: -->
 <h2>Single window as class object</h2>
-<pre class="brush: cpp">
+<p>
+Generally, problem is solved. But in future we may want to have more than two
+windows and with more harder display logic. Let's try encapsulate window
+managment inside class for more scalability.<br>
+Make step backward to single window problem and implement class with same usage.
+</p>
+<pre>
 class GLView {
  public:
    GLView(const char* title);
@@ -196,6 +192,172 @@ class GLView {
    static void reshape(int width, int height);
 };
 </pre>
+
+<p>
+Header of our class has all that we need. User choose window title only.
+Now main function use single line for create similar window. In sight of class
+user it is straight-forward usage without care about internal implementation.
+</p>
+
+<pre>
+int main(int argc, char** argv) {
+  GLView glview("Single view");
+  glutMainLoop();
+  return 0;
+}
+</pre>
+
+In sight of class we just encpsulated existing usage inside corresponding
+methods. Note that functions is static. It is required for registering
+callbacks.
+<table>
+  <td width="50%" valign="bottom">
+  <pre>
+  GLView::GLView(const char* title) {
+    // GLUT initialization.
+    int argc = 0;
+    glutInit(&amp;argc, 0);
+
+    // Window initialization.
+    glutInitWindowSize(324, 324);  // Width, height of window.
+    glutInitWindowPosition(0, 0);  // (x, y) position of window from top-left.
+    int window_id = glutCreateWindow(title);
+
+    // Set callbacks.
+    glutDisplayFunc(display);
+    glutReshapeFunc(reshape);
+    glutIdleFunc(display);
+  }
+  </pre></td>
+
+  <td width="50%" valign="bottom">
+  <pre>
+  void GLView::display() {
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glColor3ub(0xCA, 0xFF, 0xEE);
+    glBegin(GL_TRIANGLES);
+      glVertex2f(0.0f, 0.5f);
+      glVertex2f(-0.5f, -0.5f);
+      glVertex2f(0.5f, -0.5f);
+    glEnd();
+
+    glutSwapBuffers();
+  }
+
+  void GLView::reshape(int width, int height) {
+    glViewport(0, 0, width, height);
+  }
+  </pre></td>
+</table>
+
+<h2>Abstract views manager</h2>
+
+<pre>
+class GLView {
+ public:
+   GLView(const char* title);
+
+ protected:
+   virtual void display() = 0;
+
+ private:
+   static void idle_display();
+   static void reshape(int width, int height);
+
+   static std::vector&lt;GLView*&gt; glviews;
+   int window_id;
+};
+</pre>
+
+<table>
+  <td width="50%" valign="bottom">
+  <pre>
+  GLView::GLView(const char* title) {
+    if (glviews.empty()) {
+      int argc = 0;
+      glutInit(&amp;argc, 0);  // GLUT initialization.
+    }
+
+    // Window initialization.
+    glutInitWindowSize(324, 324);  // Width, height of window.
+    glutInitWindowPosition(0, 0);  // (x, y) position of window from top-left.
+    window_id = glutCreateWindow(title);
+    glviews.push_back(this);
+
+    // Set callbacks.
+    glutDisplayFunc(idle_display);
+    glutReshapeFunc(reshape);
+    glutIdleFunc(idle_display);
+  }
+  </pre></td>
+
+  <td width="50%" valign="top">
+  <pre>
+  void GLView::idle_display() {
+    for (int i = 0; i < glviews.size(); ++i) {
+      glutSetWindow(glviews[i]->window_id);
+      glviews[i]->display();
+    }
+  }
+
+  void GLView::reshape(int width, int height) {
+    glViewport(0, 0, width, height);
+  }
+  </pre></td>
+</table>
+
+<table>
+  <td width="50%" valign="bottom">
+  <pre>
+  class FirstView : public GLView {
+   public:
+    FirstView() : GLView("First view") {}
+
+   protected:
+     virtual void display() {
+       glClear(GL_COLOR_BUFFER_BIT);
+
+       glColor3ub(0xCA, 0xFF, 0xEE);
+       glBegin(GL_TRIANGLES);
+         glVertex2f(0.0f, 0.5f);
+         glVertex2f(-0.5f, -0.5f);
+         glVertex2f(0.5f, -0.5f);
+       glEnd();
+
+       glutSwapBuffers();
+     }
+  };
+  </pre></td>
+
+  <td width="50%" valign="bottom">
+  <pre>
+  class SecondView : public GLView {
+   public:
+    SecondView() : GLView("Second view") {}
+
+   protected:
+     virtual void display() {
+       glClear(GL_COLOR_BUFFER_BIT);
+
+       glColor3ub(0xCA, 0xFF, 0xEE);
+       glBegin(GL_TRIANGLES);
+         glVertex2f(0.0f, -0.5f);
+         glVertex2f(0.5f, 0.5f);
+         glVertex2f(-0.5f, 0.5f);
+       glEnd();
+
+       glutSwapBuffers();
+     }
+  };
+  </pre></td>
+</table>
+
+<h2>GLUT subwindows</h2>
+
+<h2>Useful links</h2>
+<!-- OpenGL Documentation -->
+<!-- List of freeglut functions -->
 
 </body>
 </html>
