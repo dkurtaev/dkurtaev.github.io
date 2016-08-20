@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<head>
+  <title>DK: Multi GLUT</title>
+</head>
+
+<body>
+
+<h1><a href="index.html">Dmitry Kurtaev/</a> C++: Multiply GLUT windows</h1>
+<p>
+<b>Задача:</b> использование нескольких окон из GLUT с различными функциями
+рисования.<br>
+<b>Пример:</b> с использованием C++, freeglut.<br>
+</p>
+<p>
+
+<h2>Создание простого окна</h2>
+GLUT - библиотека, предоставляющая функционал для создания окон, в которых
+происходит отображение того, что мы нарисовали с помощью OpenGL. Кроме создания,
+мы можем навесить на них обработчики событий от пользователя: изменение размеров
+окна, нажатие клавиш, движение мыши. Каждый из обработчиков является функцией,
+которую принято называть callback.<br>
+Минимальный код, демонстрирующий работу библиотеки, включает в себя
+инициализацию самого GLUT, инициализацию окна (начальные размер и положение),
+регистрацию требуемых обработчиков событий.
+</p>
+
+<table>
+  <td width="50%" valign="bottom">
+  <pre>
+  #include &lt;GL/freeglut.h&gt;
+
+  int main(int argc, char** argv) {
+    glutInit(&amp;argc, argv);  // GLUT initialization.
+
+    // Window initialization.
+    glutInitWindowSize(324, 324);  // Width, height of window.
+    glutInitWindowPosition(0, 0);  // (x, y) position of window from top-left.
+    glutCreateWindow("Single view");
+
+    glutDisplayFunc(display);  // Set callback.
+
+    glutMainLoop();  // Start GLUT's internal loop. Exit by window closing.
+    return 0;
+  }
+  </pre></td>
+
+  <td width="50%" valign="bottom">
+  <pre>
+  void display() {
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glColor3ub(0xCA, 0xFF, 0xEE);  // Hex just for fun. Color is (202, 255, 238).
+    glBegin(GL_TRIANGLES);
+      glVertex2f(0.0f, 0.5f);
+      glVertex2f(-0.5f, -0.5f);
+      glVertex2f(0.5f, -0.5f);
+    glEnd();
+
+    glutSwapBuffers();
+  }
+  </pre></td>
+</table>
+
+<p>
+Создающиеся окна имеют рамку, стандартную для имеющейся операционной системы.
+На изображениях представлен вид окон программы, запускаемой на Ubuntu
+16.04LTS.<br>
+<img src="images/single_window_triangle.png" alt="Single view"><br>
+Дополнение: GLUT мощный и простой в использовании инструмент для создания окон и
+работы с пользователем через них. Благодаря именно удобству использования, не
+стоит требовать от него операций уровня операционной системы. Таких как,
+например, скрытие заголовка (рамки) созданного окна, поддержание окна поверх
+остальных окон.
+</p>
+
+<h2>Создание двух окон</h2>
+<p>
+Проинициализируем последовательно два окна, каждый из которых свяжем с
+собственной функцией отрисовки.
+</p>
+
+<!-- Add second id and switch between. Tell about single reshape. What if number of view more than two? Additional ids?<br> -->
+<table>
+  <td width="50%" valign="bottom">
+  <pre>
+  int main(int argc, char** argv) {
+    glutInit(&amp;argc, argv);  // GLUT initialization.
+
+    // First window initialization.
+    glutInitWindowSize(324, 324);  // Width, height of window.
+    glutInitWindowPosition(0, 0);  // (x, y) position of window from top-left.
+    glutCreateWindow("First view");
+
+    glutDisplayFunc(display_first);
+
+    // Second window initialization.
+    glutInitWindowSize(324, 324);
+    glutInitWindowPosition(500, 0);
+    glutCreateWindow("Second view");
+
+    glutDisplayFunc(display_second);
+
+    // Start GLUT's internal loop. Exit by one of windows is closing.
+    glutMainLoop();
+    return 0;
+  }
+  </pre></td>
+
+  <td width="50%" valign="bottom">
+  <pre>
+  void display_first() {
+    glClear(GL_COLOR_BUFFER_BIT);
+    glColor3ub(0xCA, 0xFF, 0xEE);
+    glBegin(GL_TRIANGLES);
+      glVertex2f(0.0f, 0.5f);
+      glVertex2f(-0.5f, -0.5f);
+      glVertex2f(0.5f, -0.5f);
+    glEnd();
+    glutSwapBuffers();
+  }
+
+  void display_second() {
+    glClear(GL_COLOR_BUFFER_BIT);
+    glColor3ub(0xCA, 0xFF, 0xEE);
+    glBegin(GL_TRIANGLES);
+      glVertex2f(0.0f, -0.5f);
+      glVertex2f(0.5f, 0.5f);
+      glVertex2f(-0.5f, 0.5f);
+    glEnd();
+    glutSwapBuffers();
+  }
+  </pre></td>
+</table>
+
+<img src="images/two_windows_classic.png" alt="Two views"><br>
+
+<h2>Single window as class object</h2>
+<p>
+Generally, problem is solved. But in future we may want to have more than two
+windows and with more harder display logic. Let's try encapsulate window
+managment inside class for more scalability.<br>
+Make step backward to single window problem and implement class with same usage.
+</p>
+<pre>
+class GLView {
+ public:
+   GLView(const char* title);
+
+ private:
+   static void display();
+   static void reshape(int width, int height);
+};
+</pre>
+
+<p>
+Header of our class has all that we need. User choose window title only.
+Now main function use single line for create similar window. In sight of class
+user it is straight-forward usage without care about internal implementation.
+</p>
+
+<pre>
+int main(int argc, char** argv) {
+  GLView glview("Single view");
+  glutMainLoop();
+  return 0;
+}
+</pre>
+
+In sight of class we just encpsulated existing usage inside corresponding
+methods. Note that functions is static. It is required for registering
+callbacks.
+<table>
+  <td width="50%" valign="bottom">
+  <pre>
+  GLView::GLView(const char* title) {
+    // GLUT initialization.
+    int argc = 0;
+    glutInit(&amp;argc, 0);
+
+    // Window initialization.
+    glutInitWindowSize(324, 324);  // Width, height of window.
+    glutInitWindowPosition(0, 0);  // (x, y) position of window from top-left.
+    int window_id = glutCreateWindow(title);
+
+    // Set callbacks.
+    glutDisplayFunc(display);
+    glutReshapeFunc(reshape);
+  }
+  </pre></td>
+
+  <td width="50%" valign="bottom">
+  <pre>
+  void GLView::display() {
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glColor3ub(0xCA, 0xFF, 0xEE);
+    glBegin(GL_TRIANGLES);
+      glVertex2f(0.0f, 0.5f);
+      glVertex2f(-0.5f, -0.5f);
+      glVertex2f(0.5f, -0.5f);
+    glEnd();
+
+    glutSwapBuffers();
+  }
+
+  void GLView::reshape(int width, int height) {
+    glViewport(0, 0, width, height);
+  }
+  </pre></td>
+</table>
+
+<h2>Abstract views manager</h2>
+
+<pre>
+class GLView {
+ public:
+   GLView(const char* title);
+
+ protected:
+   virtual void display() = 0;
+
+ private:
+   static void display_all();
+   static void reshape(int width, int height);
+
+   static std::vector&lt;GLView*&gt; glviews;
+   int window_id;
+};
+</pre>
+
+<table>
+  <td width="50%" valign="bottom">
+  <pre>
+  GLView::GLView(const char* title) {
+    if (glviews.empty()) {
+      int argc = 0;
+      glutInit(&amp;argc, 0);  // GLUT initialization.
+    }
+
+    // Window initialization.
+    glutInitWindowSize(324, 324);  // Width, height of window.
+    glutInitWindowPosition(0, 0);  // (x, y) position of window from top-left.
+    window_id = glutCreateWindow(title);
+    glviews.push_back(this);
+
+    // Set callbacks.
+    glutDisplayFunc(display_all);
+    glutReshapeFunc(reshape);
+  }
+  </pre></td>
+
+  <td width="50%" valign="top">
+  <pre>
+  void GLView::display_all() {
+    for (int i = 0; i < glviews.size(); ++i) {
+      glutSetWindow(glviews[i]->window_id);
+      glviews[i]->display();
+    }
+  }
+
+  void GLView::reshape(int width, int height) {
+    glViewport(0, 0, width, height);
+  }
+  </pre></td>
+</table>
+
+<table>
+  <td width="50%" valign="bottom">
+  <pre>
+  class FirstView : public GLView {
+   public:
+    FirstView() : GLView("First view") {}
+
+   protected:
+     virtual void display() {
+       glClear(GL_COLOR_BUFFER_BIT);
+
+       glColor3ub(0xCA, 0xFF, 0xEE);
+       glBegin(GL_TRIANGLES);
+         glVertex2f(0.0f, 0.5f);
+         glVertex2f(-0.5f, -0.5f);
+         glVertex2f(0.5f, -0.5f);
+       glEnd();
+
+       glutSwapBuffers();
+     }
+  };
+  </pre></td>
+
+  <td width="50%" valign="bottom">
+  <pre>
+  class SecondView : public GLView {
+   public:
+    SecondView() : GLView("Second view") {}
+
+   protected:
+     virtual void display() {
+       glClear(GL_COLOR_BUFFER_BIT);
+
+       glColor3ub(0xCA, 0xFF, 0xEE);
+       glBegin(GL_TRIANGLES);
+         glVertex2f(0.0f, -0.5f);
+         glVertex2f(0.5f, 0.5f);
+         glVertex2f(-0.5f, 0.5f);
+       glEnd();
+
+       glutSwapBuffers();
+     }
+  };
+  </pre></td>
+</table>
+
+<h2>GLUT subwindows</h2>
+
+<h2>Useful links</h2>
+<!-- OpenGL Documentation -->
+<!-- List of freeglut functions -->
+
+</body>
+</html>
