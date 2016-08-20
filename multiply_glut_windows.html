@@ -20,9 +20,7 @@ It provides windows manipulations: create, reshape, receive user's callbacks and
 display OpenGL's drawings stored in buffers.<br>
 Minimal usage includes GLUT and window initialization, settings up references to
 functions which we want to be called by specific events.
-There are callbacks.<br>
-Idle function is a function which must be called when no events exists. We set
-display function as Idle.
+There are callbacks.
 </p>
 
 <table>
@@ -41,7 +39,6 @@ display function as Idle.
     // Set callbacks.
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
-    glutIdleFunc(display);
 
     glutMainLoop();  // Start GLUT's internal loop. Exit by window closing.
     return 0;
@@ -121,7 +118,6 @@ Second View нет. Находясь в едином контексте, нео�
 
     glutDisplayFunc(display_first);
     glutReshapeFunc(reshape);
-    glutIdleFunc(display_first);
 
     // Second window initialization.
     glutInitWindowSize(324, 324);
@@ -130,7 +126,6 @@ Second View нет. Находясь в едином контексте, нео�
 
     glutDisplayFunc(display_second);
     glutReshapeFunc(reshape);
-    glutIdleFunc(display_second);
 
     glutMainLoop();  // Exit from GLUT's loop by one of windows is closing.
     return 0;
@@ -226,7 +221,6 @@ callbacks.
     // Set callbacks.
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
-    glutIdleFunc(display);
   }
   </pre></td>
 
@@ -262,7 +256,7 @@ class GLView {
    virtual void display() = 0;
 
  private:
-   static void idle_display();
+   static void display_all();
    static void reshape(int width, int height);
 
    static std::vector&lt;GLView*&gt; glviews;
@@ -286,15 +280,14 @@ class GLView {
     glviews.push_back(this);
 
     // Set callbacks.
-    glutDisplayFunc(idle_display);
+    glutDisplayFunc(display_all);
     glutReshapeFunc(reshape);
-    glutIdleFunc(idle_display);
   }
   </pre></td>
 
   <td width="50%" valign="top">
   <pre>
-  void GLView::idle_display() {
+  void GLView::display_all() {
     for (int i = 0; i < glviews.size(); ++i) {
       glutSetWindow(glviews[i]->window_id);
       glviews[i]->display();
