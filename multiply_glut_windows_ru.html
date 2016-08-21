@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+
+<head>
+  <title>DK: Multi GLUT</title>
+</head>
+
+<body>
+
+<h1><a href="index_ru.html">Dmitry Kurtaev/</a> C++: Multiply GLUT windows</h1>
+<p>
+<b>Задача:</b> использование нескольких окон из GLUT с различными функциями
+рисования.<br>
+<b>Пример:</b> с использованием C++, freeglut.<br>
+<b>Языки:</b>
+<a href="multiply_glut_windows.html">EN</a>,
+<a href="multiply_glut_windows_ru.html">RU</a>
+</p>
+
+<h2>Главы</h2>
+&bull; <a href="#single_window">Создание простого окна</a><br>
+&bull; <a href="#two_windows">Создание двух окон</a><br>
+&bull; <a href="#single_glview">Функционал окна внутри класса</a><br>
+&bull; <a href="#two_glviews">Оконный менеджер</a><br>
+&bull; <a href="#subwindows">Окно внутри окна</a><br>
+&bull; <a href="#references">Полезные ссылки</a>
+
+<p>
+<h2 id="single_window">Создание простого окна</h2>
+GLUT - библиотека, предоставляющая функционал для создания окон, в которых
+происходит отображение того, что мы нарисовали с помощью OpenGL. Кроме создания,
+мы можем навесить на них обработчики событий от пользователя: изменение размеров
+окна, нажатие клавиш, движение мыши. Каждый из обработчиков является функцией,
+которую принято называть callback.<br>
+Минимальный код, демонстрирующий работу библиотеки, включает в себя
+инициализацию самого GLUT, инициализацию окна (начальные размер и положение),
+регистрацию требуемых обработчиков событий.
+</p>
+
+<table>
+  <td width="50%" valign="bottom">
+  <pre><code>
+  #include &lt;GL/freeglut.h&gt;
+
+  int main(int argc, char** argv) {
+    glutInit(&amp;argc, argv);  // GLUT initialization.
+
+    // Window initialization.
+    glutInitWindowSize(324, 324);  // Width, height of window.
+    glutInitWindowPosition(0, 0);  // (x, y) position of window from top-left.
+    int window_id = glutCreateWindow("Single view");
+
+    glutDisplayFunc(display);  // Set callback.
+
+    glutMainLoop();  // Start GLUT's internal loop. Exit by window closing.
+    return 0;
+  }
+  </code></pre></td>
+
+  <td width="50%" valign="bottom">
+  <pre><code>
+  void display() {
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glColor3ub(0xCA, 0xFF, 0xEE);  // Hex just for fun. Color is (202, 255, 238).
+    glBegin(GL_TRIANGLES);
+      glVertex2f(0.0f, 0.5f);
+      glVertex2f(-0.5f, -0.5f);
+      glVertex2f(0.5f, -0.5f);
+    glEnd();
+
+    glutSwapBuffers();
+  }
+  </code></pre></td>
+</table>
+
+<p>
+Создающиеся окна имеют рамку, стандартную для имеющейся операционной системы.
+На изображениях представлен вид окон программы, запускаемой на Ubuntu
+16.04LTS.<br>
+<img src="images/single_window_triangle.png" alt="Single view"><br>
+Дополнение: GLUT мощный и простой в использовании инструмент для создания окон и
+работы с пользователем через них. Благодаря именно удобству использования, не
+стоит требовать от него операций уровня операционной системы. Таких как,
+например, скрытие заголовка (рамки) созданного окна, поддержание окна поверх
+остальных окон.
+</p>
+
+<h2 id="two_windows">Создание двух окон</h2>
+<p>
+Проинициализируем последовательно два окна, каждый из которых свяжем с
+собственной функцией отрисовки.
+</p>
+
+<table>
+  <td width="50%" valign="bottom">
+  <pre><code>
+  int main(int argc, char** argv) {
+    glutInit(&amp;argc, argv);  // GLUT initialization.
+
+    // First window initialization.
+    glutInitWindowSize(324, 324);  // Width, height of window.
+    glutInitWindowPosition(0, 0);  // (x, y) position of window from top-left.
+    int first_window_id = glutCreateWindow("First view");
+
+    glutDisplayFunc(display_first);
+
+    // Second window initialization.
+    glutInitWindowSize(324, 324);
+    glutInitWindowPosition(500, 0);
+    int second_window_id = glutCreateWindow("Second view");
+
+    glutDisplayFunc(display_second);
+
+    // Start GLUT's internal loop. Exit by one of windows is closing.
+    glutMainLoop();
+    return 0;
+  }
+  </code></pre></td>
+
+  <td width="50%" valign="bottom">
+  <pre><code>
+  void display_first() {
+    glClear(GL_COLOR_BUFFER_BIT);
+    glColor3ub(0xCA, 0xFF, 0xEE);
+    glBegin(GL_TRIANGLES);
+      glVertex2f(0.0f, 0.5f);
+      glVertex2f(-0.5f, -0.5f);
+      glVertex2f(0.5f, -0.5f);
+    glEnd();
+    glutSwapBuffers();
+  }
+
+  void display_second() {
+    glClear(GL_COLOR_BUFFER_BIT);
+    glColor3ub(0xCA, 0xFF, 0xEE);
+    glBegin(GL_TRIANGLES);
+      glVertex2f(0.0f, -0.5f);
+      glVertex2f(0.5f, 0.5f);
+      glVertex2f(-0.5f, 0.5f);
+    glEnd();
+    glutSwapBuffers();
+  }
+  </code></pre></td>
+</table>
+
+<img src="images/two_windows_classic.png" alt="Two views"><br>
+
+<h2 id="single_glview">Функционал окна внутри класса</h2>
+<p>
+Задача, в том виде как она сформулирована, может считаться решённой. Но что,
+если нам потребуется иметь большее число окон, с более сложной логикой отрисовки
+и обработкой событий? Давайте попробуем инкапсулировать работу с окном для
+будущей масштабируемости приложений, использующих GLUT.<br>
+Вернёмся на этап создания одного окна и реализуем класс, обеспечивающий тот же
+функционал.
+</p>
+
+<pre><code>
+class GLView {
+ public:
+   GLView(const char* title);
+
+ private:
+   static void display();
+};
+</code></pre>
+
+<p>
+С точки зрения пользователя класса, достаточно выбрать заголовок создаваемого
+окна, не заботясь о внутренней реализации.
+</p>
+
+<pre><code>
+int main(int argc, char** argv) {
+  GLView glview("Single view");
+  glutMainLoop();
+  return 0;
+}
+</code></pre>
+
+<p>
+Относительно класса, мы просто оборачиваем существующие функции в
+соответствующие методы. Для регистрации методов как обработчиков событий,
+необходима статическая реализация.
+</p>
+
+<table>
+  <td width="50%" valign="bottom">
+  <pre><code>
+  GLView::GLView(const char* title) {
+    // GLUT initialization.
+    int argc = 0;
+    glutInit(&amp;argc, 0);
+
+    // Window initialization.
+    glutInitWindowSize(324, 324);  // Width, height of window.
+    glutInitWindowPosition(0, 0);  // (x, y) position of window from top-left.
+    int window_id = glutCreateWindow(title);
+
+    glutDisplayFunc(display);  // Set callback.
+  }
+  </code></pre></td>
+
+  <td width="50%" valign="bottom">
+  <pre><code>
+  void GLView::display() {
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    glColor3ub(0xCA, 0xFF, 0xEE);
+    glBegin(GL_TRIANGLES);
+      glVertex2f(0.0f, 0.5f);
+      glVertex2f(-0.5f, -0.5f);
+      glVertex2f(0.5f, -0.5f);
+    glEnd();
+
+    glutSwapBuffers();
+  }
+  </code></pre></td>
+</table>
+
+<h2 id="two_glviews">Оконный менеджер</h2>
+<p>
+Необходимо использовать созданный класс для управления несколькими окнами. Из-за
+того, что функция отрисовки статична, она одинакова для каждого из объектов
+класса. Для решения проблемы, объявим функцию display абстрактной, что позволит
+реализовать функционал в классах-наследниках. А в качестве обработки события
+отрисовки, вызовем перерисовку всех имеющихся окон.
+</p>
+
+<pre><code>
+class GLView {
+ public:
+   GLView(const char* title);
+
+ protected:
+   virtual void display() = 0;
+
+ private:
+   static void display_all();
+
+   static std::vector&lt;GLView*&gt; glviews;
+   int window_id;
+};
+</code></pre>
+
+<p>
+Обратим внимание, что функция display_all будет зарегестрирована на каждое окно.
+То есть при необходимости перерисовки одного из окон, будут перерисованы все.
+</p>
+
+<table>
+  <td width="50%" valign="bottom">
+  <pre><code>
+  GLView::GLView(const char* title) {
+    if (glviews.empty()) {
+      int argc = 0;
+      glutInit(&amp;argc, 0);  // GLUT initialization.
+    }
+
+    // Window initialization.
+    glutInitWindowSize(324, 324);  // Width, height of window.
+    glutInitWindowPosition(0, 0);  // (x, y) position of window from top-left.
+    window_id = glutCreateWindow(title);
+    glviews.push_back(this);
+
+    glutDisplayFunc(display_all);  // Set callback.
+  }
+  </code></pre></td>
+
+  <td width="50%" valign="top">
+  <pre><code>
+  void GLView::display_all() {
+    for (int i = 0; i < glviews.size(); ++i) {
+      glviews[i]->display();
+    }
+  }
+  </code></pre></td>
+</table>
+
+<p>
+Ранее, у нас были различные функции для различных окон и мы не заботились о
+том, чтобы идентифицировать окно. Сейчас такая задача возникает.
+Если развернуть цикл вызовов display внутри display_all, от каждой из реализации
+класса, получится, что актуальной будет лишь последняя итерация (произойдёт
+очередная очистка методом glClear(..) и обновление содержимого окна методом
+glutSwapBuffers()). Для разрешения конфликта, используем функцию
+glutSetWindow(..), которая устанавливает текущее окно, для которого применяются
+последующие инструкции.
+</p>
+
+<pre><code>
+void GLView::display_all() {
+  for (int i = 0; i < glviews.size(); ++i) {
+    glutSetWindow(glviews[i]->window_id);
+    glviews[i]->display();
+  }
+}
+</code></pre>
+
+<p>
+Для создания нового окна, можно объявить класс-наследник с собственной
+реализацией метода display.
+</p>
+
+<table>
+  <td width="50%" valign="bottom">
+  <pre><code>
+  class FirstView : public GLView {
+   public:
+    FirstView() : GLView("First view") {}
+
+   protected:
+     virtual void display() {
+       glClear(GL_COLOR_BUFFER_BIT);
+
+       glColor3ub(0xCA, 0xFF, 0xEE);
+       glBegin(GL_TRIANGLES);
+         glVertex2f(0.0f, 0.5f);
+         glVertex2f(-0.5f, -0.5f);
+         glVertex2f(0.5f, -0.5f);
+       glEnd();
+
+       glutSwapBuffers();
+     }
+  };
+  </code></pre></td>
+
+  <td width="50%" valign="bottom">
+  <pre><code>
+  class SecondView : public GLView {
+   public:
+    SecondView() : GLView("Second view") {}
+
+   protected:
+     virtual void display() {
+       glClear(GL_COLOR_BUFFER_BIT);
+
+       glColor3ub(0xCA, 0xFF, 0xEE);
+       glBegin(GL_TRIANGLES);
+         glVertex2f(0.0f, -0.5f);
+         glVertex2f(0.5f, 0.5f);
+         glVertex2f(-0.5f, 0.5f);
+       glEnd();
+
+       glutSwapBuffers();
+     }
+  };
+  </code></pre></td>
+</table>
+
+<h2 id="subwindows">Окно внутри окна</h2>
+<p>
+В качестве дополнения, рассмотрим задачу разделения единственного окна на
+области, в каждой из которых собственные функции отрисовки и прочие callback
+функции.<br>
+GLUT имеет функцию glutCreateSubWindow(..), которая создает окно в пространстве
+родительского, существующего окна.<br>
+</p>
+
+<pre><code>
+GLView::GLView(const char* title, GLView* parent) {
+  if (glviews.empty()) {
+    int argc = 0;
+    glutInit(&amp;argc, 0);  // GLUT initialization.
+  }
+
+  // Window initialization.
+  if (parent != 0) {
+    // Receive parent's id, x, y, width and height. Subwindows has not titles.
+    window_id = glutCreateSubWindow(parent->window_id, 0, 0, 128, 128);
+  } else {
+    glutInitWindowSize(324, 324);  // Width, height of window.
+    glutInitWindowPosition(0, 0);  // (x, y) position of window from top-left.
+    window_id = glutCreateWindow(title);
+  }
+  glviews.push_back(this);
+
+  glutDisplayFunc(display_all);  // Set callback.
+}
+</code></pre>
+
+<img src="images/subwindow.png" alt="Subwindow"><br>
+
+<p>
+Дополнение: дочернее окно будет иметь постоянный размер, не смотря на изменение
+размеров родительского окна. При необходимости, можно самостоятельно
+организовать изменение размеров, используя относительные координаты, пробрасывая
+события от родительских окон дочерним.
+</p>
+
+<h2 id="references">Полезные ссылки</h2>
+<a href=https://www.opengl.org/sdk/docs/man2/xhtml>OpenGL 2.1 Reference Pages</a><br>
+<a href=http://freeglut.sourceforge.net/docs/api.php>freeglut API</a>
+
+</body>
+</html>
