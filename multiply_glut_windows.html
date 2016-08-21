@@ -16,8 +16,16 @@
 <a href="multiply_glut_windows_ru.html">RU</a>
 </p>
 
+<h2>Table of contents</h2>
+&bull; <a href="#single_window">Single classic window</a><br>
+&bull; <a href="#two_windows">Two classic windows</a><br>
+&bull; <a href="#single_glview">Single window as class object</a><br>
+&bull; <a href="#two_glviews">Abstract views manager</a><br>
+&bull; <a href="#subwindows">GLUT subwindows</a><br>
+&bull; <a href="#references">Useful links</a>
+
 <p>
-<h2>Single classic window</h2>
+<h2 id="single_window">Single classic window</h2>
 GLUT is a library for OpenGL.
 It provides windows manipulations: create, reshape, receive user's callbacks and
 display OpenGL's drawings stored in buffers.<br>
@@ -71,7 +79,7 @@ OS-like operations like hiding window's header or keep window always on top of
 other windows.
 </p>
 
-<h2>Two classic windows</h2>
+<h2 id="two_windows">Two classic windows</h2>
 <p>
 We initializing two windows sequently. For each write own display function.
 </p>
@@ -130,7 +138,7 @@ We initializing two windows sequently. For each write own display function.
 
 <img src="images/two_windows_classic.png" alt="Two views"><br>
 
-<h2>Single window as class object</h2>
+<h2 id="single_glview">Single window as class object</h2>
 <p>
 Generally, problem is solved. But in future we may want to have more than two
 windows and with more harder callbacks logic. Let's try encapsulate window
@@ -202,7 +210,7 @@ callbacks.
   </code></pre></td>
 </table>
 
-<h2>Abstract views manager</h2>
+<h2 id="two_glviews">Abstract views manager</h2>
 
 <p>
 We need to provide few windows management. Due to display function is static, it
@@ -327,7 +335,7 @@ For new window we implements class with own display.
   </code></pre></td>
 </table>
 
-<h2>GLUT subwindows</h2>
+<h2 id="subwindows">GLUT subwindows</h2>
 <p>
 In addition let's try merge two windows inside single window. But each subwindow
 has own callbacks.<br>
@@ -365,7 +373,7 @@ we can make own child reshape using relative coordinates and parent's reshape
 callback.
 </p>
 
-<h2>Useful links</h2>
+<h2 id="references">Useful links</h2>
 <a href=https://www.opengl.org/sdk/docs/man2/xhtml>OpenGL 2.1 Reference Pages</a><br>
 <a href=http://freeglut.sourceforge.net/docs/api.php>freeglut API</a>
 
