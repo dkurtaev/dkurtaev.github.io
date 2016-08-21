@@ -39,7 +39,7 @@ GLUT - библиотека, предоставляющая функционал
     // Window initialization.
     glutInitWindowSize(324, 324);  // Width, height of window.
     glutInitWindowPosition(0, 0);  // (x, y) position of window from top-left.
-    glutCreateWindow("Single view");
+    int window_id = glutCreateWindow("Single view");
 
     glutDisplayFunc(display);  // Set callback.
 
@@ -92,14 +92,14 @@ GLUT - библиотека, предоставляющая функционал
     // First window initialization.
     glutInitWindowSize(324, 324);  // Width, height of window.
     glutInitWindowPosition(0, 0);  // (x, y) position of window from top-left.
-    glutCreateWindow("First view");
+    int first_window_id = glutCreateWindow("First view");
 
     glutDisplayFunc(display_first);
 
     // Second window initialization.
     glutInitWindowSize(324, 324);
     glutInitWindowPosition(500, 0);
-    glutCreateWindow("Second view");
+    int second_window_id = glutCreateWindow("Second view");
 
     glutDisplayFunc(display_second);
 
@@ -185,7 +185,7 @@ int main(int argc, char** argv) {
     // Window initialization.
     glutInitWindowSize(324, 324);  // Width, height of window.
     glutInitWindowPosition(0, 0);  // (x, y) position of window from top-left.
-    glutCreateWindow(title);
+    int window_id = glutCreateWindow(title);
 
     glutDisplayFunc(display);  // Set callback.
   }
@@ -208,7 +208,12 @@ int main(int argc, char** argv) {
   </pre></td>
 </table>
 
-<h2>Abstract views manager</h2>
+<h2>Оконный менеджер</h2>
+Необходимо использовать созданный класс для управления несколькими окнами. Из-за
+того, что функция отрисовки статична, она одинакова для каждого из объектов
+класса. Для решения проблемы, объявим функцию display абстрактной, что позволит
+реализовать функционал в классах-наследниках. А в качестве обработки события
+отрисовки, вызовем перерисовку всех имеющихся окон.
 
 <pre>
 class GLView {
@@ -220,12 +225,14 @@ class GLView {
 
  private:
    static void display_all();
-   static void reshape(int width, int height);
 
    static std::vector&lt;GLView*&gt; glviews;
    int window_id;
 };
 </pre>
+
+Обратим внимание, что функция display_all будет зарегестрирована на каждое окно.
+То есть при необходимости перерисовки одного из окон, будут перерисованы все.
 
 <table>
   <td width="50%" valign="bottom">
@@ -242,9 +249,7 @@ class GLView {
     window_id = glutCreateWindow(title);
     glviews.push_back(this);
 
-    // Set callbacks.
-    glutDisplayFunc(display_all);
-    glutReshapeFunc(reshape);
+    glutDisplayFunc(display_all);  // Set callback.
   }
   </pre></td>
 
@@ -252,16 +257,33 @@ class GLView {
   <pre>
   void GLView::display_all() {
     for (int i = 0; i < glviews.size(); ++i) {
-      glutSetWindow(glviews[i]->window_id);
       glviews[i]->display();
     }
   }
-
-  void GLView::reshape(int width, int height) {
-    glViewport(0, 0, width, height);
-  }
   </pre></td>
 </table>
+
+Ранее, у нас были различные функции для различных окон и мы не заботились о
+том, чтобы идентифицировать окно. Сейчас такая задача возникает.
+Если развернуть цикл вызовов display внутри display_all, от каждой из реализации
+класса, получится, что актуальной будет лишь последняя итерация (произойдёт
+очередная очистка методом glClear(..) и обновление содержимого окна методом
+glutSwapBuffers()). Для разрешения конфликта, используем функцию
+glutSetWindow(..), которая устанавливает текущее окно, для которого применяются
+последующие инструкции.
+
+<pre>
+void GLView::display_all() {
+  for (int i = 0; i < glviews.size(); ++i) {
+    glutSetWindow(glviews[i]->window_id);
+    glviews[i]->display();
+  }
+}
+</pre>
+
+<p>
+Для создания нового окна, можно объявить класс-наследник с собственной
+реализацией метода display.
 
 <table>
   <td width="50%" valign="bottom">
@@ -308,10 +330,48 @@ class GLView {
   };
   </pre></td>
 </table>
+</p>
 
-<h2>GLUT subwindows</h2>
+<h2>Окно внутри окна</h2>
+<p>
+В качестве дополнения, рассмотрим задачу разделения единственного окна на
+области, в каждой из которых собственные функции отрисовки и прочие callback
+функции.<br>
+GLUT имеет функцию glutCreateSubWindow(..), которая создает окно в пространстве
+родительского, существующего окна.<br>
+Добавим указатель на родительское окно в конструктор.
+</p>
 
-<h2>Useful links</h2>
+<pre>
+GLView::GLView(const char* title, GLView* parent) {
+  if (glviews.empty()) {
+    int argc = 0;
+    glutInit(&amp;argc, 0);  // GLUT initialization.
+  }
+
+  // Window initialization.
+  if (parent != 0) {
+    // Receive parent's id, x, y, width and height. Subwindows has not titles.
+    window_id = glutCreateSubWindow(parent->window_id, 0, 0, 128, 128);
+  } else {
+    glutInitWindowSize(324, 324);  // Width, height of window.
+    glutInitWindowPosition(0, 0);  // (x, y) position of window from top-left.
+    window_id = glutCreateWindow(title);
+  }
+  glviews.push_back(this);
+
+  glutDisplayFunc(display_all);  // Set callback.
+}
+</pre>
+
+<p>
+Дополнение: дочернее окно будет иметь постоянный размер, не смотря на изменение
+размеров родительского окна. При необходимости, можно самостоятельно
+организовать изменение размеров, используя относительные координаты, пробрасывая
+события от родительских окон дочерним.
+</p>
+
+<h2>Полезные ссылки</h2>
 <!-- OpenGL Documentation -->
 <!-- List of freeglut functions -->
 
