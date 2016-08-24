@@ -184,18 +184,49 @@
   </td>
 </table>
 
-Вычисление нормалей.
+<h2>Вычисление нормалей.</h2>
+
+Для создания теней необходимо задать нормаль к поверхности в каждой из вершин.
+
 <pre><code>
-y+dy  _____z6___z5
-     |***/ | 5 / |
-     |**/  |  /  |
-     |*/ 6 | / 4 |
-   y z1---z0----z4
-     | 1 / | 3 /*|
-     |  /  |  /**|
-     | / 2 | /***|
-y-dy z2----z3----*
-    x-dx   x    x+dx
+                  ^ normal
+(x2, y2, z2) _____|____
+             \    |   / (x1, y1, z1)
+              \   |  /
+               \    /
+                \  /
+                 \/ (x3, y3, z3)
+</code></pre>
+
+Для треугольника с вершинами (x1, y1, z1), (x2, y2, z2), (x3, y3, z3),
+перечисленными против часовой стрелки, нормалью является вектор (nx, ny, nz):
+
+<pre><code>
+nx = y1 * (z2 - z3) + y2 * (z3 - z1) + y3 * (z1 - z2)
+ny = x1 * (z3 - z2) + x2 * (z1 - z3) + x3 * (z2 - z1)
+nz = x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2)
+</code></pre>
+
+Для каждой внутренней вершины (узел которой не принадлежит верхней, левой,
+нижней или правой границе сетки) вычислим нормаль как среднее между нормалями
+треугольников, содержащих эту вершину.
+
+<pre><code>
+^
+|
+y+dy   ______z6_____z5
+|     |****/ |    / |
+|     |***/  | 5 /  |
+|     |**/   |  /   |
+|     |*/  6 | /  4 |
+y     z1-----z0-----z4
+|     |  1 / |  3 /*|
+|     |   /  |   /**|
+|     |  / 2 |  /***|
+|     | /    | /****|
+y-dy  z2-----z3-----*
+|
++--- x-dx -- x --- x+dx ---->
 
 1) nx = dy*(z1-z0); ny = dx*(z2-z1); nz = dx*dy;
 2) nx = dy*(z2-z3); ny = dx*(z3-z0); nz = dx*dy;
@@ -203,11 +234,53 @@ y-dy z2----z3----*
 4) nx = dy*(z0-z4); ny = dx*(z4-z5); nz = dx*dy;
 5) nx = dy*(z6-z5); ny = dx*(z0-z6); nz = dx*dy;
 6) nx = dy*(z1-z0); ny = dx*(z0-z6); nz = dx*dy;
-
-nx = 1/6 * dy * (2*z1+z2-z3-2*z4-z5+z6)
-ny = 1/6 * dx * (-z1+z2+2*z3+z4-z5-2*z6)
-nz = dx*dy
 </code></pre>
+
+Результирующие формулы для вычисления нормалей во внутренних вершинах:
+
+<pre><code>
+nx = 1/6 * dy * (2 * z1 + z2 - z3 - 2 * z4 - z5 + z6)
+ny = 1/6 * dx * (-z1 + z2 + 2 * z3 + z4 - z5 - 2 * z6)
+nz = dx * dy
+</code></pre>
+
+Для граничных вершин, нормали могут быть скопированы с соседнего слоя внутренних
+вершин.
+
+<table>
+  <td width="50%" valign="top">
+    <script src="code_samples/grid_surface_normals_constructor_internal_vertices.cpp"></script>
+  </td>
+
+  <td width="50%" valign="top">
+    <script src="code_samples/grid_surface_normals_constructor_border_vertices.cpp"></script>
+    <pre><code>
+      #####  ##  ##  ##     ######   ###
+     ###    ######  ##     ##  ##   ##
+    #####  ##  ##  #####  ######   *
+    </code></pre>
+  </td>
+</table>
+
+<table>
+  <tr>
+    <td width="50%" valign="top" rowspan="2">
+      <script src="code_samples/grid_surface_normals_draw.cpp"></script>
+    </td>
+
+    <td valign="top">
+      <script src="code_samples/grid_surface_settings.cpp"></script>
+    </td>
+  </tr>
+
+  <tr>
+    <td valign="top">
+      <img src="images/grid_surface_lighting.png" alt="S"><br>
+    </td>
+  </tr>
+</table>
+
+<h2>Использование индексов</h2>
 
 </body>
 
