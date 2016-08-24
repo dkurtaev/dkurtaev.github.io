@@ -32,28 +32,15 @@
 <!-- Изображение камеры, с осью -->
 </p>
 
-<pre><code>
-void draw_axises() {
-  // Ox is red, Oy is blue, Oz is green.
-  glBegin(GL_LINES);
-    glColor3ub(255, 0, 0);
-    glVertex3f(0.0f, 0.0f, 0.0f);
-    glVertex3f(100.0f, 0.0f, 0.0f);
+<table>
+  <td width="50%" valign="top">
+    <script src="code_samples/grid_surface_draw_axises.cpp"></script>
+  </td>
 
-    glColor3ub(0, 255, 0);
-    glVertex3f(0.0f, 0.0f, 0.0f);
-    glVertex3f(0.0f, 100.0f, 0.0f);
-
-    glColor3ub(0, 0, 255);
-    glVertex3f(0.0f, 0.0f, 0.0f);
-    glVertex3f(0.0f, 0.0f, 100.0f);
-  glEnd();
-}
-</code></pre>
-
-
-<img src="images/coords.gif" alt="Coordinate axises"><br>
-
+  <td width="50%" valign="top">
+    <img src="images/grid_surface_coord_axises.png" alt="Coordinate axises"><br>
+  </td>
+</table>
 
 <h2>Задание поверхности</h2>
 <table>
@@ -75,7 +62,7 @@ void draw_axises() {
   y0 |   *-----*-----*-----*-----*
      +-------------------------------> x
          x0    x1    x2    x3    x4
-  </code></pre> </td>
+  </code></pre></td>
 
   <td width="50%" valign="top">
   <pre><code>
@@ -118,74 +105,109 @@ void draw_axises() {
 </p>
 
 <table>
-  <td width="50%" valign="bottom">
+  <tr height="50%">
+    <td width="50%" valign="top">
+      <script src="code_samples/grid_surface_via_spheres_header.cpp"></script>
+    </td>
+
+    <td width="50%" valign="top">
+      <img src="images/grid_surface_via_spheres.png" alt="Surface via spheres"><br>
+    </td>
+  </tr>
+
+  <tr height="50%">
+    <td width="50%" valign="top">
+      <script src="code_samples/grid_surface_via_spheres_constructor.cpp"></script>
+    </td>
+
+    <td width="50%" valign="top">
+      <script src="code_samples/grid_surface_via_spheres_draw.cpp"></script>
+    </td>
+  </tr>
+</table>
+
+<h2>Триангуляция</h2>
+<p>
+Для рисования сплошной поверхности, необходимо осуществить рисование примитивов
+с вершинами в узлах сетки. Разобьём пространство между вершинами на
+треугольники.<br>
+Поскольку вся необходимая информация содержится в массиве с координатами,
+изменяем только функцию отрисовки.
+</p>
+
+<table>
+  <td width="50%" valign="top">
   <pre><code>
-  class Surface {
-   public:
-    Surface(float min_x, float max_x, float min_y, float max_y,
-            int n_nodes_by_x, int n_nodes_by_y);
-
-    ~Surface();
-
-    void Draw();
-
-   private:
-    float* heights;
-    float min_x;
-    float min_y;
-    int n_nodes_by_x;
-    int n_nodes_by_y;
-    float step_by_x;
-    float step_by_y;
-  };
+     ^ y
+  y3 |   *-----*-----*-----*-----*
+     |   |   / |   / |   / |   / |
+     |   |  /  |  /  |  /  |  /  |
+     |   | /   | /   | /   | /   |
+  y2 |   *-----*-----*-----*-----*
+     |   |   / |   / |   / |   / |
+     |   |  /  |  /  |  /  |  /  |
+     |   | /   | /   | /   | /   |
+  y1 |   *-----*-----*-----*-----*
+     |   |   / |   / |   / |   / |
+     |   |  /  |  /  |  /  |  /  |
+     |   | /   | /   | /   | /   |
+  y0 |   *-----*-----*-----*-----*
+     +-------------------------------> x
+         x0    x1    x2    x3    x4
   </code></pre></td>
 
-  <td width="50%" valign="bottom">
+  <td width="50%" valign="top">
   <pre><code>
-  Surface::Surface(float min_x, float max_x, float min_y, float max_y,
-                   int n_nodes_by_x, int n_nodes_by_y) {
-    this->min_x = min_x;
-    this->min_y = min_y;
-    this->n_nodes_by_x = n_nodes_by_x;
-    this->n_nodes_by_y = n_nodes_by_y;
-    step_by_x = (max_x - min_x) / (n_nodes_by_x - 1);
-    step_by_y = (max_y - min_y) / (n_nodes_by_y - 1);
-
-    heights = new float[n_nodes_by_x * n_nodes_by_y];
-    for (int i = 0; i < n_nodes_by_y; ++i) {
-      for (int j = 0; j < n_nodes_by_x; ++j) {
-        float x = min_x + j * step_by_x;
-        float y = min_y + i * step_by_y;
-        heights[i * n_nodes_by_x + j] = cos(x * y / M_PI);
-      }
-    }
-  }
-  </code></pre></td>
+  (x,y+dy) ____top____(x+dx,y+dy)
+          |  <--     /|
+          | |   ^   / |
+          | v   |  /  |
+         l|  -->  /   |r
+         e|      /    |i
+         f|     /     |g
+         t|    / <--  |h
+          |   / |   ^ |t
+          |  /  V   | |
+          | /    -->  |
+          |/__________|
+      (x,y)  bottom (x+dx,y)
+    </code></pre></td>
 </table>
 
 <table>
   <td width="50%" valign="top">
-    <img src="images/surface_via_spheres.gif" alt="Surface via spheres"><br>
+    <script src="code_samples/grid_surface_via_triangles_draw.cpp"></script>
   </td>
 
   <td width="50%" valign="top">
-  <pre><code>
-  void Surface::Draw() {
-    glColor3ub(0, 127, 127);
-    for (int i = 0; i < n_nodes_by_y; ++i) {
-      for (int j = 0; j < n_nodes_by_x; ++j) {
-        float x = min_x + j * step_by_x;
-        float y = min_y + i * step_by_y;
-
-        glPushMatrix();
-          glTranslatef(x, y, heights[i * n_nodes_by_x + j]);
-          glutSolidSphere(0.02, 10, 10);
-        glPopMatrix();
-      }
-    }
-  }
-  </code></pre></td>
+    <img src="images/grid_surface_via_triangles.png" alt="Surface via triangles"><br>
+  </td>
 </table>
+
+Вычисление нормалей.
+<pre><code>
+y+dy  _____z6___z5
+     |***/ | 5 / |
+     |**/  |  /  |
+     |*/ 6 | / 4 |
+   y z1---z0----z4
+     | 1 / | 3 /*|
+     |  /  |  /**|
+     | / 2 | /***|
+y-dy z2----z3----*
+    x-dx   x    x+dx
+
+1) nx = dy*(z1-z0); ny = dx*(z2-z1); nz = dx*dy;
+2) nx = dy*(z2-z3); ny = dx*(z3-z0); nz = dx*dy;
+3) nx = dy*(z0-z4); ny = dx*(z3-z0); nz = dx*dy;
+4) nx = dy*(z0-z4); ny = dx*(z4-z5); nz = dx*dy;
+5) nx = dy*(z6-z5); ny = dx*(z0-z6); nz = dx*dy;
+6) nx = dy*(z1-z0); ny = dx*(z0-z6); nz = dx*dy;
+
+nx = 1/6 * dy * (2*z1+z2-z3-2*z4-z5+z6)
+ny = 1/6 * dx * (-z1+z2+2*z3+z4-z5-2*z6)
+nz = dx*dy
+</code></pre>
 
 </body>
 
