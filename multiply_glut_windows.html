@@ -34,40 +34,13 @@ callback functions by specific events.
 </p>
 
 <table>
-  <td width="50%" valign="bottom">
-  <pre><code>
-  #include &lt;GL/freeglut.h&gt;
+  <td width="50%" valign="top">
+    <script src="code_samples/multi_glut_single_window_main.cpp"></script>
+  </td>
 
-  int main(int argc, char** argv) {
-    glutInit(&amp;argc, argv);  // GLUT initialization.
-
-    // Window initialization.
-    glutInitWindowSize(324, 324);  // Width, height of window.
-    glutInitWindowPosition(0, 0);  // (x, y) position of window from top-left.
-    int window_id = glutCreateWindow("Single view");
-
-    glutDisplayFunc(display);  // Set callback.
-
-    glutMainLoop();  // Start GLUT's internal loop. Exit by window closing.
-    return 0;
-  }
-  </code></pre></td>
-
-  <td width="50%" valign="bottom">
-  <pre><code>
-  void display() {
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    glColor3ub(0xCA, 0xFF, 0xEE);  // Hex just for fun. Color is (202, 255, 238).
-    glBegin(GL_TRIANGLES);
-      glVertex2f(0.0f, 0.5f);
-      glVertex2f(-0.5f, -0.5f);
-      glVertex2f(0.5f, -0.5f);
-    glEnd();
-
-    glutSwapBuffers();
-  }
-  </code></pre></td>
+  <td width="50%" valign="top">
+    <script src="code_samples/multi_glut_single_window_display.cpp"></script>
+  </td>
 </table>
 
 <p>
@@ -86,54 +59,12 @@ We initializing two windows sequently. For each write own display function.
 
 <table>
   <td width="50%" valign="bottom">
-  <pre><code>
-  int main(int argc, char** argv) {
-    glutInit(&amp;argc, argv);  // GLUT initialization.
-
-    // First window initialization.
-    glutInitWindowSize(324, 324);  // Width, height of window.
-    glutInitWindowPosition(0, 0);  // (x, y) position of window from top-left.
-    int first_window_id = glutCreateWindow("First view");
-
-    glutDisplayFunc(display_first);
-
-    // Second window initialization.
-    glutInitWindowSize(324, 324);
-    glutInitWindowPosition(500, 0);
-    int second_window_id = glutCreateWindow("Second view");
-
-    glutDisplayFunc(display_second);
-
-    // Start GLUT's internal loop. Exit by one of windows is closing.
-    glutMainLoop();
-    return 0;
-  }
-  </code></pre></td>
+    <script src="code_samples/multi_glut_two_windows_main.cpp"></script>
+  </td>
 
   <td width="50%" valign="bottom">
-  <pre><code>
-  void display_first() {
-    glClear(GL_COLOR_BUFFER_BIT);
-    glColor3ub(0xCA, 0xFF, 0xEE);
-    glBegin(GL_TRIANGLES);
-      glVertex2f(0.0f, 0.5f);
-      glVertex2f(-0.5f, -0.5f);
-      glVertex2f(0.5f, -0.5f);
-    glEnd();
-    glutSwapBuffers();
-  }
-
-  void display_second() {
-    glClear(GL_COLOR_BUFFER_BIT);
-    glColor3ub(0xCA, 0xFF, 0xEE);
-    glBegin(GL_TRIANGLES);
-      glVertex2f(0.0f, -0.5f);
-      glVertex2f(0.5f, 0.5f);
-      glVertex2f(-0.5f, 0.5f);
-    glEnd();
-    glutSwapBuffers();
-  }
-  </code></pre></td>
+    <script src="code_samples/multi_glut_two_windows_display.cpp"></script>
+  </td>
 </table>
 
 <img src="images/two_windows_classic.png" alt="Two views"><br>
@@ -146,15 +77,7 @@ managment inside class for more scalability.<br>
 Make step backward to single window problem and implement class with same usage.
 </p>
 
-<pre><code>
-class GLView {
- public:
-   GLView(const char* title);
-
- private:
-   static void display();
-};
-</code></pre>
+<script src="code_samples/multi_glut_single_glview_header.cpp"></script>
 
 <p>
 Header of our class has all that we need. User choose window title only.
@@ -162,13 +85,7 @@ Now main function use single line for create similar window. In sight of class
 user it is easy to use without care about internal implementation.
 </p>
 
-<pre><code>
-int main(int argc, char** argv) {
-  GLView glview("Single view");
-  glutMainLoop();
-  return 0;
-}
-</code></pre>
+<script src="code_samples/multi_glut_single_glview_main.cpp"></script>
 
 <p>
 In sight of class we just encpsulated existing usage inside corresponding
@@ -178,36 +95,12 @@ callbacks.
 
 <table>
   <td width="50%" valign="bottom">
-  <pre><code>
-  GLView::GLView(const char* title) {
-    // GLUT initialization.
-    int argc = 0;
-    glutInit(&amp;argc, 0);
-
-    // Window initialization.
-    glutInitWindowSize(324, 324);  // Width, height of window.
-    glutInitWindowPosition(0, 0);  // (x, y) position of window from top-left.
-    int window_id = glutCreateWindow(title);
-
-    glutDisplayFunc(display);  // Set callback.
-  }
-  </code></pre></td>
+    <script src="code_samples/multi_glut_single_glview_constructor.cpp"></script>
+  </td>
 
   <td width="50%" valign="bottom">
-  <pre><code>
-  void GLView::display() {
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    glColor3ub(0xCA, 0xFF, 0xEE);
-    glBegin(GL_TRIANGLES);
-      glVertex2f(0.0f, 0.5f);
-      glVertex2f(-0.5f, -0.5f);
-      glVertex2f(0.5f, -0.5f);
-    glEnd();
-
-    glutSwapBuffers();
-  }
-  </code></pre></td>
+    <script src="code_samples/multi_glut_single_glview_display.cpp"></script>
+  </td>
 </table>
 
 <h2 id="two_glviews">Abstract views manager</h2>
@@ -219,21 +112,7 @@ Let's make display as abstract function that will be implemented inside
 an inherited classes. As callback we calling each display of created window.
 </p>
 
-<pre><code>
-class GLView {
- public:
-   GLView(const char* title);
-
- protected:
-   virtual void display() = 0;
-
- private:
-   static void display_all();
-
-   static std::vector&lt;GLView*&gt; glviews;
-   int window_id;
-};
-</code></pre>
+<script src="code_samples/multi_glut_two_glviews_header.cpp"></script>
 
 <p>
 We will see that display_all function is registered as callback for each window
@@ -242,31 +121,12 @@ i.e. in case of single display request we redisplay every other window.
 
 <table>
   <td width="50%" valign="bottom">
-  <pre><code>
-  GLView::GLView(const char* title) {
-    if (glviews.empty()) {
-      int argc = 0;
-      glutInit(&amp;argc, 0);  // GLUT initialization.
-    }
-
-    // Window initialization.
-    glutInitWindowSize(324, 324);  // Width, height of window.
-    glutInitWindowPosition(0, 0);  // (x, y) position of window from top-left.
-    window_id = glutCreateWindow(title);
-    glviews.push_back(this);
-
-    glutDisplayFunc(display_all);  // Set callback.
-  }
-  </code></pre></td>
+    <script src="code_samples/multi_glut_two_glviews_constructor.cpp"></script>
+  </td>
 
   <td width="50%" valign="top">
-  <pre><code>
-  void GLView::display_all() {
-    for (int i = 0; i < glviews.size(); ++i) {
-      glviews[i]->display();
-    }
-  }
-  </code></pre></td>
+    <script src="code_samples/multi_glut_two_glviews_display_wrong.cpp"></script>
+  </td>
 </table>
 
 Before we had different functions for different windows. Now we have problem
@@ -276,14 +136,7 @@ calls that overwrites previous changes.<br>
 For solving problem we using glutSetWindow(..). It sets current window for
 which applying future commands.
 
-<pre><code>
-void GLView::display_all() {
-  for (int i = 0; i < glviews.size(); ++i) {
-    glutSetWindow(glviews[i]->window_id);
-    glviews[i]->display();
-  }
-}
-</code></pre>
+<script src="code_samples/multi_glut_two_glviews_display_correct.cpp"></script>
 
 <p>
 For new window we implements class with own display.
@@ -291,48 +144,12 @@ For new window we implements class with own display.
 
 <table>
   <td width="50%" valign="bottom">
-  <pre><code>
-  class FirstView : public GLView {
-   public:
-    FirstView() : GLView("First view") {}
-
-   protected:
-     virtual void display() {
-       glClear(GL_COLOR_BUFFER_BIT);
-
-       glColor3ub(0xCA, 0xFF, 0xEE);
-       glBegin(GL_TRIANGLES);
-         glVertex2f(0.0f, 0.5f);
-         glVertex2f(-0.5f, -0.5f);
-         glVertex2f(0.5f, -0.5f);
-       glEnd();
-
-       glutSwapBuffers();
-     }
-  };
-  </code></pre></td>
+    <script src="code_samples/multi_glut_two_glviews_first_view.cpp"></script>
+  </td>
 
   <td width="50%" valign="bottom">
-  <pre><code>
-  class SecondView : public GLView {
-   public:
-    SecondView() : GLView("Second view") {}
-
-   protected:
-     virtual void display() {
-       glClear(GL_COLOR_BUFFER_BIT);
-
-       glColor3ub(0xCA, 0xFF, 0xEE);
-       glBegin(GL_TRIANGLES);
-         glVertex2f(0.0f, -0.5f);
-         glVertex2f(0.5f, 0.5f);
-         glVertex2f(-0.5f, 0.5f);
-       glEnd();
-
-       glutSwapBuffers();
-     }
-  };
-  </code></pre></td>
+    <script src="code_samples/multi_glut_two_glviews_second_view.cpp"></script>
+  </td>
 </table>
 
 <h2 id="subwindows">GLUT subwindows</h2>
@@ -343,27 +160,7 @@ GLUT has method glutCreateSubWindow(..) which creates new window in space of
 existing parent window.
 </p>
 
-<pre><code>
-GLView::GLView(const char* title, GLView* parent) {
-  if (glviews.empty()) {
-    int argc = 0;
-    glutInit(&amp;argc, 0);  // GLUT initialization.
-  }
-
-  // Window initialization.
-  if (parent != 0) {
-    // Receive parent's id, x, y, width and height. Subwindows has not titles.
-    window_id = glutCreateSubWindow(parent->window_id, 0, 0, 128, 128);
-  } else {
-    glutInitWindowSize(324, 324);  // Width, height of window.
-    glutInitWindowPosition(0, 0);  // (x, y) position of window from top-left.
-    window_id = glutCreateWindow(title);
-  }
-  glviews.push_back(this);
-
-  glutDisplayFunc(display_all);  // Set callback.
-}
-</code></pre>
+<script src="code_samples/multi_glut_subwindows_constructor.cpp"></script>
 
 <img src="images/subwindow.png" alt="Subwindow"><br>
 
