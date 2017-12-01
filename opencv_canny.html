@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+  <title>DK: OpenCV Canny</title>
+
+  <!-- Download OpenCV JavaScript bindings -->
+  <script src="https://docs.opencv.org/master/opencv.js" type="text/javascript"></script>
+
+  <script type='text/javascript'>
+    function main() {
+      // Create a camera object.
+      var camera = document.createElement("video");
+      camera.setAttribute("width", "640");
+      camera.setAttribute("height", "480");
+
+      // Get a permission from user to use a camera.
+      navigator.mediaDevices.getUserMedia({video: true, audio: false})
+        .then(function(stream) {
+          camera.srcObject = stream;
+          camera.onloadedmetadata = function(e) {
+            camera.play();
+          };
+      });
+
+      // Open a camera stream.
+      var cap = new cv.VideoCapture(camera);
+      var frame = new cv.Mat(camera.height, camera.width, cv.CV_8UC4);
+      var res = new cv.Mat(camera.height, camera.width, cv.CV_8UC1);
+
+      // Define frames processing.
+      function captureFrame() {
+        cap.read(frame);
+        cv.Canny(frame, res, 100, 200);
+        cv.imshow("output", res);
+        setTimeout(captureFrame, 40);  // Loop this function.
+      };
+      // Run the processing function.
+      captureFrame();
+    };
+  </script>
+</head>
+
+<body onload="main()">
+  <h1><a href="https://dkurtaev.github.io/">Dmitry Kurtaev/</a> OpenCV: Canny edge detector</h1>
+
+  <p>
+  <b>Example:</b> OpenCV.js demo with Canny edge detection on images from camera stream<br>
+  </p>
+
+  <div style="position: relative">
+    <canvas id="output" style="max-width: 100%; position: relative"></canvas>
+    <a href="https://opencv.org/">
+      <img src="https://opencv.org/assets/theme/logo.png"
+           style="background-color: #fff; border: 1px solid black; width: 64px; position: absolute; left: 0; top: 0;"></img>
+    </a>
+  </div>
+
+  <h2 id="references">Useful links</h2>
+  <a href=https://docs.opencv.org/master>OpenCV documentation</a><br>
+  <a href=http://answers.opencv.org>OpenCV questions forum</a>
+</body>
+
+</html>
