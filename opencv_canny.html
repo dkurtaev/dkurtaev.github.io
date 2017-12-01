@@ -15,8 +15,8 @@
       camera.setAttribute("width", "640");
       camera.setAttribute("height", "480");
 
-      // Get a permission from user to use a camera.
-      navigator.mediaDevices.getUserMedia({video: true, audio: false})
+      // Get a permission from user to use a camera. Prefer rare camera on mobile devices.
+      navigator.mediaDevices.getUserMedia({video: { facingMode: { exact: "environment" } }, audio: false})
         .then(function(stream) {
           camera.srcObject = stream;
           camera.onloadedmetadata = function(e) {
