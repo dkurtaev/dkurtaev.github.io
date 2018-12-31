@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+  <title>DK: Style Transfer</title>
+
+  <!-- Download OpenCV JavaScript bindings -->
+  <script src="https://docs.opencv.org/master/opencv.js" type="text/javascript"></script>
+  <script src="https://docs.opencv.org/master/utils.js" type="text/javascript"></script>
+
+  <script type='text/javascript'>
+    var blobWidth, blobHeight;
+    var downloadedModels = [];
+
+    function main() {
+      var utils = new Utils('');
+
+      // This is a method from OpenCV's utils but with a callback.
+      function loadImageToCanvas(url, cavansId, callback) {
+          let canvas = document.getElementById(cavansId);
+          let ctx = canvas.getContext('2d');
+          let img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = function() {
+              canvas.width = img.width;
+              canvas.height = img.height;
+              ctx.drawImage(img, 0, 0, img.width, img.height);
+              if (callback) {
+                callback();
+              }
+          };
+          img.src = url;
+      };
+
+      // This is a method from OpenCV's utils but with a callback.
+      function addFileInputHandler(fileInputId, canvasId, callback) {
+          let inputElement = document.getElementById(fileInputId);
+          inputElement.addEventListener('change', (e) => {
+              let files = e.target.files;
+              if (files.length > 0) {
+                  let imgUrl = URL.createObjectURL(files[0]);
+                  loadImageToCanvas(imgUrl, canvasId, callback);
+              }
+          }, false);
+      };
+
+      // Image loading.
+      addFileInputHandler('fileInput', 'canvasInput', function() {
+        var canvas = document.getElementById('canvasInput');
+        blobWidth = canvas.width;
+        blobHeight = canvas.height;
+        document.getElementById('outputSize').innerHTML = canvas.width + "x" + canvas.height;
+        document.getElementById('processButton').disabled = false;
+      });
+
+      function process(modelName) {
+        // Load network and process uploaded image.
+        var net = cv.readNet(modelName + ".t7");
+        var imgRGBA = cv.imread('canvasInput');
+        var img = new cv.Mat(imgRGBA.rows, imgRGBA.cols, cv.CV_8UC3);
+        cv.cvtColor(imgRGBA, img, cv.COLOR_RGBA2BGR);
+
+        // Run a network.
+        var blob = cv.blobFromImage(img, 1.0, {width: blobWidth, height: blobHeight}, [103.939, 116.779, 123.68, 0]);
+        net.setInput(blob);
+        var out = net.forward();
+        document.getElementById('info').innerHTML = "";
+
+        // Postprocessing.
+        var outHeight = out.matSize[2];
+        var outWidth = out.matSize[3];
+        var planeSize = outHeight * outWidth;
+
+        var data = out.data32F;
+        var b = cv.matFromArray(outHeight, outWidth, cv.CV_32FC1, data.slice(0, planeSize));
+        var g = cv.matFromArray(outHeight, outWidth, cv.CV_32FC1, data.slice(planeSize, 2 * planeSize));
+        var r = cv.matFromArray(outHeight, outWidth, cv.CV_32FC1, data.slice(2 * planeSize, 3 * planeSize));
+        var b_u8 = new cv.Mat(), g_u8 = new cv.Mat(), r_u8 = new cv.Mat();
+        b.convertTo(b_u8, cv.CV_8U, 1.0, 103.939);
+        g.convertTo(g_u8, cv.CV_8U, 1.0, 116.779);
+        r.convertTo(r_u8, cv.CV_8U, 1.0, 123.68);
+
+        var vec = new cv.MatVector();
+        vec.push_back(r_u8);
+        vec.push_back(g_u8);
+        vec.push_back(b_u8);
+
+        var rgb = new cv.Mat();
+        cv.merge(vec, rgb);
+
+        // Render resulting image.
+        cv.imshow("output", rgb);
+
+        document.getElementById('download').onclick = function() {
+          document.getElementById("output").toBlob(function(blob) {
+            var link = document.createElement('a');
+            link.download = "result.png";
+            link.href = URL.createObjectURL(blob);
+            link.click();
+          });
+        };
+      }
+
+      // Image processing.
+      document.getElementById('processButton').onclick = function() {
+        // Get model name.
+        var styles = document.getElementById("styles");
+        var modelName = styles.options[styles.selectedIndex].value;
+        var url = "https://cs.stanford.edu/people/jcjohns/fast-neural-style/models/" + modelName + ".t7";
+        modelName = modelName.replace('/', '_');
+
+        document.getElementById('info').innerHTML = "Style transferring...";
+        if (downloadedModels.includes(modelName))
+        {
+          process(modelName);
+        }
+        else
+        {
+          document.getElementById('info').innerHTML = "Model downloading...";
+          // Download the model.
+          utils.createFileFromUrl(modelName + ".t7", 'https://cors-anywhere.herokuapp.com/' + url, () => {
+            downloadedModels.push(modelName);
+            process(modelName);
+          });
+        }
+      };
+    };
+
+    // Output size settings.
+    function sliderOnChange(val) {
+      var canvas = document.getElementById('canvasInput');
+      blobWidth = Math.floor(canvas.width * val / 100);
+      blobHeight = Math.floor(canvas.height * val / 100);
+      document.getElementById('outputSize').innerHTML = blobWidth + "x" + blobHeight;
+    };
+  </script>
+</head>
+
+<body onload="main()">
+  <h1><a href="https://dkurtaev.github.io/">Dmitry Kurtaev/</a> Style Transfer</h1>
+
+  <p>
+    This is a demonstration of
+    <a href="https://github.com/jcjohnson/fast-neural-style">Fast Neural Style</a>
+    deep learning networks by
+    <a href="http://cs.stanford.edu/people/jcjohns/">Justin Johnson</a>,
+    <a href="http://web.stanford.edu/~alahi/">Alexandre Alahi</a> and
+    <a href="http://vision.stanford.edu/feifeili/">Li Fei-Fei</a> using
+    <a href="https://docs.opencv.org/master/d5/d10/tutorial_js_root.html">OpenCV.js</a>.
+  </p>
+
+  <h2>1. Upload an image</h2>
+  <input type="file" id="fileInput" name="file" accept="image/*" /><br>
+  <canvas id="canvasInput" style="max-width: 100%"></canvas><br>
+
+  <h2>2. Choose style and output image resolution</h2>
+
+  <div>
+    <b>Style: </b>
+    <select id="styles">
+      <option value="instance_norm/candy">Candy</option>
+      <option value="instance_norm/la_muse">La Muse</option>
+      <option value="instance_norm/mosaic">Mosaic</option>
+      <option value="instance_norm/feathers">Feathers</option>
+      <option value="instance_norm/the_scream">The Scream</option>
+      <option value="instance_norm/udnie">Udnie</option>
+
+      <option value="eccv16/the_wave">The Wave</option>
+      <option value="eccv16/starry_night">Starry Night</option>
+      <option value="eccv16/la_muse">La Muse 2</option>
+      <option value="eccv16/composition_vii">Composition Vii</option>
+    </select>
+
+    <button id="processButton" type="button" disabled="true">Process</button><br><br>
+  </div>
+
+  <div>
+    <b>Size: </b>
+    <input type="range" min="1" max="100" value="100" class="slider" id="myRange" onchange="sliderOnChange(this.value)">
+    <span id="outputSize"></span><br>
+    <p>Note: the larger output image the longer it's creation.</p>
+  </div>
+
+  <h2>3. Save and share with friends</h2>
+  <div id="info"></div>
+  <button id="download" type="button">Download</button><br><br>
+  <canvas id="output" style="max-width: 100%"></canvas>
+</body>
+
+</html>
