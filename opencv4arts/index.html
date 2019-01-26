@@ -7,6 +7,8 @@
   <script src="./utils.js" type="text/javascript"></script>
 
   <script type='text/javascript'>
+    var blobWidth = -1; blobHeight = -1;
+
     function main() {
       cv['onRuntimeInitialized']=()=>{
         var utils = new Utils('');
@@ -20,6 +22,8 @@
         utils.addFileInputHandler('fileInput', 'canvasInput');
 
         document.getElementById('processButton').onclick = function() {
+          document.getElementById('processButton').disabled = true;
+
           var styles = document.getElementById("styles");
           var modelName = "style_" + styles.options[styles.selectedIndex].value + ".t7";
 
@@ -43,7 +47,8 @@
 
           // Create a 4D blob from image and run a network.
           var blob = cv.blobFromImage(imgBGR, 1.0 / 127.5,  // scalefactor
-                                      {width: imgBGR.cols, height: imgBGR.rows},  // sizes
+                                      {width: blobWidth > 0 ? blobWidth : imgBGR.cols,
+                                       height: blobHeight > 0 ? blobHeight : imgBGR.rows},  // sizes
                                       [127.5, 127.5, 127.5, 0]);  // mean subtraction
           net.setInput(blob);
           var out = net.forward();
@@ -80,9 +85,18 @@
               link.click();
             }, "image/jpeg");
           };
+          document.getElementById('processButton').disabled = false;
         }
       }
     }
+
+    // Output size settings.
+    function sliderOnChange(val) {
+      var canvas = document.getElementById('canvasInput');
+      blobWidth = Math.floor(canvas.width * val / 100);
+      blobHeight = Math.floor(canvas.height * val / 100);
+      document.getElementById('outputSize').innerHTML = blobWidth + "x" + blobHeight;
+    };
   </script>
 </head>
 
@@ -105,10 +119,14 @@
     <option value="vangogh">Van Gogh</option>
     <option value="monet">Monet</option>
     <option value="cezanne">Cezanne</option>
-    <option value="ukiyoe">Ukiyoe</option>
+    <option value="ukiyoe">Ukiyo-e</option>
   </select>
 
   <button id="processButton" type="button" disabled="true">Process</button><br>
+
+  <b>Size: </b>
+  <input type="range" min="1" max="100" value="100" class="slider" id="myRange" onchange="sliderOnChange(this.value)">
+  <span id="outputSize"></span><br>
 
   <canvas id="canvasOutput" style="max-width: 100%"></canvas><br>
 
