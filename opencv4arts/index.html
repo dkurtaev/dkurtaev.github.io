@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+  <script async src="./opencv_wasm.js" type="text/javascript"></script>
+  <script src="./utils.js" type="text/javascript"></script>
+
+  <script type='text/javascript'>
+    function main() {
+      cv['onRuntimeInitialized']=()=>{
+        var utils = new Utils('');
+        var nets = {};
+        var net;
+
+        document.getElementById('fileInput').disabled = false;
+        document.getElementById('processButton').disabled = false;
+
+        // Connect "Choose image" button with canvas
+        utils.addFileInputHandler('fileInput', 'canvasInput');
+
+        document.getElementById('processButton').onclick = function() {
+          var styles = document.getElementById("styles");
+          var modelName = "style_" + styles.options[styles.selectedIndex].value + ".t7";
+
+          if (modelName in nets) {
+            net = nets[modelName];
+            process();
+          } else {
+            utils.createFileFromUrl(modelName, modelName, () => {
+              net = cv.readNet(modelName);
+              nets[modelName] = net;
+              process();
+            });
+          }
+        };
+
+        function process() {
+          // Read an image from canvas and convert it to BGR.
+          var imgRGBA = cv.imread('canvasInput');
+          var imgBGR = new cv.Mat(imgRGBA.rows, imgRGBA.cols, cv.CV_8UC3);
+          cv.cvtColor(imgRGBA, imgBGR, cv.COLOR_RGBA2BGR);
+
+          // Create a 4D blob from image and run a network.
+          var blob = cv.blobFromImage(imgBGR, 1.0 / 127.5,  // scalefactor
+                                      {width: imgBGR.cols, height: imgBGR.rows},  // sizes
+                                      [127.5, 127.5, 127.5, 0]);  // mean subtraction
+          net.setInput(blob);
+          var out = net.forward();
+
+          // Output values are in range [-1, 1]. Normalize it to [0, 255] and convert to UInt8.
+          var outNorm = new cv.Mat();
+          out.convertTo(outNorm, cv.CV_8U, 127.5, 127.5);
+
+          // Postprocessing: create an interleaved image from planar.
+          var outHeight = out.matSize[2];
+          var outWidth = out.matSize[3];
+          var planeSize = outHeight * outWidth;
+
+          var data = outNorm.data;
+          var b = cv.matFromArray(outHeight, outWidth, cv.CV_8UC1, data.slice(0, planeSize));
+          var g = cv.matFromArray(outHeight, outWidth, cv.CV_8UC1, data.slice(planeSize, 2 * planeSize));
+          var r = cv.matFromArray(outHeight, outWidth, cv.CV_8UC1, data.slice(2 * planeSize, 3 * planeSize));
+
+          var vec = new cv.MatVector();
+          vec.push_back(r);
+          vec.push_back(g);
+          vec.push_back(b);
+          var rgb = new cv.Mat();
+          cv.merge(vec, rgb);
+
+          // Render resulting image.
+          cv.imshow("canvasOutput", rgb);
+
+          document.getElementById('download').onclick = function() {
+            document.getElementById("canvasOutput").toBlob(function(blob) {
+              var link = document.createElement('a');
+              link.download = "result.jpg";
+              link.href = URL.createObjectURL(blob);
+              link.click();
+            }, "image/jpeg");
+          };
+        }
+      }
+    }
+  </script>
+</head>
+
+<body onload="main()">
+
+  <p>
+    This is a demo application for style transfer models from
+    <a href="https://github.com/junyanz/CycleGAN">https://github.com/junyanz/CycleGAN</a>
+    powered by OpenCV.js
+  </p>
+
+  <p>
+    NOTE: it's recommended to reload this page after an every image processing.
+  </p>
+
+  <input type="file" id="fileInput" name="file" accept="image/*" disabled="true" /><br>
+  <canvas id="canvasInput" style="max-width: 100%"></canvas><br>
+
+  <select id="styles">
+    <option value="vangogh">Van Gogh</option>
+    <option value="monet">Monet</option>
+    <option value="cezanne">Cezanne</option>
+    <option value="ukiyoe">Ukiyoe</option>
+  </select>
+
+  <button id="processButton" type="button" disabled="true">Process</button><br>
+
+  <canvas id="canvasOutput" style="max-width: 100%"></canvas><br>
+
+  <button id="download" type="button">Download</button><br><br>
+</body>
+
+</html>
